@@ -15,8 +15,6 @@ import com.example.foursquare.ui.common.FourSquareBottomBar
 import com.example.foursquare.ui.common.FourSquareTopBar
 import com.example.foursquare.ui.common.PlaceCard
 
-// ── Dummy data ────────────────────────────────────────────────────────────────
-
 private data class DummyPlace(
     val id: String, val name: String, val category: String,
     val rating: Double, val distance: String
@@ -30,8 +28,6 @@ private val dummyPlaces = listOf(
 )
 
 private val filterChips = listOf("All", "Food", "Activity", "Events")
-
-// ── Screen ────────────────────────────────────────────────────────────────────
 
 /**
  * Screen 4 — Discover
@@ -104,8 +100,6 @@ fun DiscoverScreen(
         }
     }
 }
-
-// ── Preview ──────────────────────────────────────────────────────────────────
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable

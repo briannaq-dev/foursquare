@@ -14,8 +14,6 @@ import androidx.compose.ui.unit.dp
 import com.example.foursquare.ui.common.FourSquareTopBar
 import com.example.foursquare.ui.common.GroupCard
 
-// ── Dummy data ────────────────────────────────────────────────────────────────
-
 private data class DummyGroup(
     val id: String, val name: String, val memberCount: Int, val statusLine: String
 )
@@ -34,8 +32,6 @@ private val dummyVoteOptions = listOf(
     DummyVoteOption("Boston Common",2, 5),
     DummyVoteOption("Trident Books",1, 5)
 )
-
-// ── Groups list screen ────────────────────────────────────────────────────────
 
 /**
  * Screen 6 — Groups
@@ -113,8 +109,6 @@ fun GroupsScreen(
         }
     }
 }
-
-// ── Group Detail sub-screen ───────────────────────────────────────────────────
 
 /**
  * Screen 7 — Group Detail / Vote & Lock
@@ -234,8 +228,6 @@ private fun VoteOptionRow(
         }
     }
 }
-
-// ── Previews ─────────────────────────────────────────────────────────────────
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable

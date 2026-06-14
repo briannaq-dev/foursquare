@@ -46,8 +46,6 @@ fun FourSquareBottomBar(
     }
 }
 
-// ── Preview ──────────────────────────────────────────────────────────────────
-
 @Preview(showBackground = true)
 @Composable
 private fun FourSquareBottomBarPreview() {

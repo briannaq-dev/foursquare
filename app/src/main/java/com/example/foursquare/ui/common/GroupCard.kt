@@ -66,8 +66,6 @@ fun GroupCard(
     }
 }
 
-// ── Preview ──────────────────────────────────────────────────────────────────
-
 @Preview(showBackground = true)
 @Composable
 private fun GroupCardPreview() {

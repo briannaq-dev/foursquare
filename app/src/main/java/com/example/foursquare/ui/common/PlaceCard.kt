@@ -74,8 +74,6 @@ fun PlaceCard(
     }
 }
 
-// ── Preview ──────────────────────────────────────────────────────────────────
-
 @Preview(showBackground = true)
 @Composable
 private fun PlaceCardPreview() {

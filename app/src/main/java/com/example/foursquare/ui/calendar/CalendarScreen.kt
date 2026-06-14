@@ -12,8 +12,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.foursquare.ui.common.FourSquareTopBar
 
-// ── Dummy data ────────────────────────────────────────────────────────────────
-
 private data class DummyEvent(
     val id: String,
     val title: String,
@@ -26,8 +24,6 @@ private val dummyEvents = listOf(
     DummyEvent("e2", "Movie night",     "Sat · 9:00 PM",   "Roomies"),
     DummyEvent("e3", "Boston Common walk", "Sun · 2:00 PM","Hometown")
 )
-
-// ── Screen ────────────────────────────────────────────────────────────────────
 
 /**
  * Screen 9 — Calendar
@@ -162,8 +158,6 @@ private fun AddEventDialog(
         }
     )
 }
-
-// ── Previews ─────────────────────────────────────────────────────────────────
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable

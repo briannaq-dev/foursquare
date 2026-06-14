@@ -12,8 +12,6 @@ import androidx.compose.ui.unit.dp
 import com.example.foursquare.ui.common.FourSquareTopBar
 import com.example.foursquare.ui.common.PlaceCard
 
-// ── Dummy data ────────────────────────────────────────────────────────────────
-
 private data class DummyPlaceRecord(
     val id: String, val name: String, val category: String,
     val rating: Double, val distance: String, val status: String
@@ -27,8 +25,6 @@ private val dummyMyPlaces = listOf(
 )
 
 private val tabs = listOf("Saved", "Visited", "History")
-
-// ── Screen ────────────────────────────────────────────────────────────────────
 
 /**
  * Screen 5 — My Places
@@ -110,8 +106,6 @@ private fun PlaceStat(label: String, count: Int) {
     }
 }
 
-// ── Sub-screen ────────────────────────────────────────────────────────────────
-
 /**
  * Sub-screen — Place Detail
  * Shows full information about a single place.
@@ -167,8 +161,6 @@ fun PlaceDetailScreen(
         }
     }
 }
-
-// ── Previews ─────────────────────────────────────────────────────────────────
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
