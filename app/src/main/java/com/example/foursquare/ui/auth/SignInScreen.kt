@@ -26,82 +26,83 @@ fun SignInScreen(
     var email    by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 32.dp),
-        verticalArrangement   = Arrangement.Center,
-        horizontalAlignment   = Alignment.CenterHorizontally
-    ) {
-        // TODO: Replace with FourSquare logo
-        Text(
-            text  = "FourSquare",
-            style = MaterialTheme.typography.displaySmall,
-            color = MaterialTheme.colorScheme.primary
-        )
-        Text(
-            text  = "Plan together, move together.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        Spacer(Modifier.height(40.dp))
-
-        Text(text = "Sign in", style = MaterialTheme.typography.titleLarge)
-
-        Spacer(Modifier.height(16.dp))
-
-        OutlinedTextField(
-            value         = email,
-            onValueChange = { email = it },
-            label         = { Text("Email") },
-            singleLine    = true,
-            modifier      = Modifier.fillMaxWidth()
-        )
-
-        Spacer(Modifier.height(12.dp))
-
-        OutlinedTextField(
-            value               = password,
-            onValueChange       = { password = it },
-            label               = { Text("Password") },
-            singleLine          = true,
-            visualTransformation = PasswordVisualTransformation(),
-            modifier             = Modifier.fillMaxWidth()
-        )
-
-        Spacer(Modifier.height(24.dp))
-
-        Button(
-            onClick  = onSignInClick,
-            modifier = Modifier.fillMaxWidth()
+    Scaffold { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(horizontal = 32.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Sign in")
-        }
+            // TODO: Replace with FourSquare logo
+            Text(
+                text  = "FourSquare",
+                style = MaterialTheme.typography.displaySmall,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text  = "Plan together, move together.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
 
-        Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(40.dp))
 
-        Text(text = "or", style = MaterialTheme.typography.bodySmall)
+            Text(text = "Sign in", style = MaterialTheme.typography.titleLarge)
 
-        Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(16.dp))
 
-        OutlinedButton(
-            onClick  = onGoogleSignIn,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            // TODO: Add Google logo icon
-            Text("Continue with Google")
-        }
+            OutlinedTextField(
+                value         = email,
+                onValueChange = { email = it },
+                label         = { Text("Email") },
+                singleLine    = true,
+                modifier      = Modifier.fillMaxWidth()
+            )
 
-        Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(12.dp))
 
-        TextButton(onClick = onSignUpClick) {
-            Text("New here? Create an account")
+            OutlinedTextField(
+                value                = password,
+                onValueChange        = { password = it },
+                label                = { Text("Password") },
+                singleLine           = true,
+                visualTransformation = PasswordVisualTransformation(),
+                modifier             = Modifier.fillMaxWidth()
+            )
+
+            Spacer(Modifier.height(24.dp))
+
+            Button(
+                onClick  = onSignInClick,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Sign in")
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            Text(text = "or", style = MaterialTheme.typography.bodySmall)
+
+            Spacer(Modifier.height(8.dp))
+
+            OutlinedButton(
+                onClick  = onGoogleSignIn,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                // TODO: Add Google logo icon
+                Text("Continue with Google")
+            }
+
+            Spacer(Modifier.height(24.dp))
+
+            TextButton(onClick = onSignUpClick) {
+                Text("New here? Create an account")
+            }
         }
     }
 }
-
-// ── Preview ──────────────────────────────────────────────────────────────────
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
