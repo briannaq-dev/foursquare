@@ -11,8 +11,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.foursquare.ui.common.FourSquareTopBar
 
-// ── Map screen ────────────────────────────────────────────────────────────────
-
 /**
  * Screen 8 — Map (Navigate Together)
  * Shows a shared live map with group members' locations and ETA info.
@@ -109,8 +107,6 @@ private fun MapStat(value: String, label: String) {
     }
 }
 
-// ── Directions sub-screen ─────────────────────────────────────────────────────
-
 /**
  * Sub-screen — Directions
  * Shows step-by-step walking/driving directions via the Google Directions API.
@@ -187,8 +183,6 @@ fun DirectionsScreen(
         }
     }
 }
-
-// ── Previews ─────────────────────────────────────────────────────────────────
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable

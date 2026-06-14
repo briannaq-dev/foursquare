@@ -124,8 +124,6 @@ fun SignUpScreen(
     }
 }
 
-// ── Preview ──────────────────────────────────────────────────────────────────
-
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 private fun SignUpScreenPreview() {
