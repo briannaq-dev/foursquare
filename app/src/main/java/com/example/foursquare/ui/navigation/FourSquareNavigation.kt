@@ -18,13 +18,17 @@ import com.example.foursquare.ui.common.FourSquareBottomBar
 import com.example.foursquare.ui.discover.DiscoverScreen
 import com.example.foursquare.ui.groups.GroupDetailScreen
 import com.example.foursquare.ui.groups.GroupsScreen
+import com.example.foursquare.ui.home.DashboardScreen
 import com.example.foursquare.ui.map.DirectionsScreen
 import com.example.foursquare.ui.map.MapScreen
 import com.example.foursquare.ui.places.PlaceDetailScreen
 import com.example.foursquare.ui.places.PlacesScreen
+import com.example.foursquare.ui.profile.ProfileScreen
+import com.example.foursquare.ui.voting.VotingScreen
 
 // Screens that should show the bottom nav bar
 private val bottomNavRoutes = setOf(
+    Dashboard::class.qualifiedName,
     Discover::class.qualifiedName,
     Places::class.qualifiedName,
     Groups::class.qualifiedName,
@@ -48,7 +52,7 @@ fun FourSquareNavigation(
                     currentRoute = currentRoute,
                     onTabSelected = { route ->
                         navController.navigate(route) {
-                            popUpTo(Discover) { saveState = true }
+                            popUpTo(Dashboard) { saveState = true }
                             launchSingleTop = true
                             restoreState = true
                         }
@@ -58,21 +62,32 @@ fun FourSquareNavigation(
         }
     ) { innerPadding ->
         NavHost(
-            navController = navController,
+            navController    = navController,
             startDestination = SignIn,
-            modifier = Modifier.padding(innerPadding)
+            modifier         = Modifier.padding(innerPadding)
         ) {
+            // Authentication
             composable<SignIn> {
                 SignInScreen(
-                    onSignInClick  = { navController.navigate(Discover) },
+                    onSignInClick  = { navController.navigate(Dashboard) },
                     onSignUpClick  = { navController.navigate(SignUp) },
-                    onGoogleSignIn = { navController.navigate(Discover) }
+                    onGoogleSignIn = { navController.navigate(Dashboard) }
                 )
             }
             composable<SignUp> {
                 SignUpScreen(
-                    onCreateAccount = { navController.navigate(Discover) },
+                    onCreateAccount = { navController.navigate(Dashboard) },
                     onBack          = { navController.popBackStack() }
+                )
+            }
+
+            // Main tabs
+            composable<Dashboard> {
+                DashboardScreen(
+                    onGroupClick   = { navController.navigate(GroupDetail(it)) },
+                    onSeeAllGroups = { navController.navigate(Groups) },
+                    onPlanClick    = { /* TODO: navigate to event detail */ },
+                    onProfileClick = { navController.navigate(Profile) }
                 )
             }
             composable<Discover> {
@@ -92,13 +107,34 @@ fun FourSquareNavigation(
             composable<Calendar> {
                 CalendarScreen()
             }
+
+            // Profile
+            composable<Profile> {
+                ProfileScreen(
+                    onPlaceClick  = { navController.navigate(PlaceDetail(it)) },
+                    onSignOut     = {
+                        navController.navigate(SignIn) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    },
+                    onEditProfile = { /* TODO: edit profile flow */ }
+                )
+            }
+
+            // Detail / sub-screens
             composable<PlaceDetail> { backStackEntry ->
                 val route = backStackEntry.toRoute<PlaceDetail>()
-                PlaceDetailScreen(placeId = route.placeId, onBack = { navController.popBackStack() })
+                PlaceDetailScreen(
+                    placeId = route.placeId,
+                    onBack  = { navController.popBackStack() }
+                )
             }
             composable<GroupDetail> { backStackEntry ->
                 val route = backStackEntry.toRoute<GroupDetail>()
-                GroupDetailScreen(groupId = route.groupId, onBack = { navController.popBackStack() })
+                GroupDetailScreen(
+                    groupId = route.groupId,
+                    onBack  = { navController.popBackStack() }
+                )
             }
             composable<Directions> { backStackEntry ->
                 val route = backStackEntry.toRoute<Directions>()
@@ -106,6 +142,15 @@ fun FourSquareNavigation(
                     placeId   = route.placeId,
                     placeName = route.placeName,
                     onBack    = { navController.popBackStack() }
+                )
+            }
+            composable<Voting> { backStackEntry ->
+                val route = backStackEntry.toRoute<Voting>()
+                VotingScreen(
+                    groupId   = route.groupId,
+                    groupName = route.groupName,
+                    onBack    = { navController.popBackStack() },
+                    onLockIn  = { navController.popBackStack() }
                 )
             }
         }
