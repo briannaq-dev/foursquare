@@ -37,7 +37,7 @@ fun FourSquareBottomBar(
     NavigationBar {
         bottomNavItems.forEach { item ->
             NavigationBarItem(
-                selected  = currentRoute == item.route::class.qualifiedName,
+                selected  = currentRoute?.contains(item.route::class.qualifiedName ?: "") == true,
                 onClick   = { onTabSelected(item.route) },
                 icon      = { Icon(imageVector = item.icon, contentDescription = item.label) },
                 label     = { Text(item.label) }
@@ -50,7 +50,7 @@ fun FourSquareBottomBar(
 @Composable
 private fun FourSquareBottomBarPreview() {
     FourSquareBottomBar(
-        currentRoute = "com.example.foursquare.ui.navigation.Discover",
+        currentRoute  = "com.example.foursquare.ui.navigation.Discover",
         onTabSelected = {}
     )
 }
