@@ -16,7 +16,7 @@ import com.example.foursquare.ui.common.PlaceCard
 
 // Dummy data
 
-private data class DummySavedPlace(
+data class DummySavedPlace(
     val id: String,
     val name: String,
     val category: String,
