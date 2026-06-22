@@ -28,7 +28,6 @@ import com.example.foursquare.ui.voting.VotingScreen
 
 // Screens that should show the bottom nav bar
 private val bottomNavRoutes = setOf(
-    Dashboard::class.qualifiedName,
     Discover::class.qualifiedName,
     Places::class.qualifiedName,
     Groups::class.qualifiedName,
@@ -69,14 +68,14 @@ fun FourSquareNavigation(
             // Authentication
             composable<SignIn> {
                 SignInScreen(
-                    onSignInClick  = { navController.navigate(Dashboard) },
+                    onSignInClick  = { navController.navigate(Discover) },
                     onSignUpClick  = { navController.navigate(SignUp) },
                     onGoogleSignIn = { navController.navigate(Dashboard) }
                 )
             }
             composable<SignUp> {
                 SignUpScreen(
-                    onCreateAccount = { navController.navigate(Dashboard) },
+                    onCreateAccount = { navController.navigate(Discover) },
                     onBack          = { navController.popBackStack() }
                 )
             }

@@ -8,23 +8,25 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 
-/**
- * Screen 1 — Sign In
- * Allows existing users to log in with email/password or Google.
- *
- * @param onSignInClick  Called when the "Sign in" button is tapped.
- * @param onSignUpClick  Called when the "Create an account" link is tapped.
- * @param onGoogleSignIn Called when the "Continue with Google" button is tapped.
- */
 @Composable
 fun SignInScreen(
+    authViewModel: AuthViewModel = viewModel(),
     onSignInClick: () -> Unit,
     onSignUpClick: () -> Unit,
     onGoogleSignIn: () -> Unit
 ) {
     var email    by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+
+    val authState    by authViewModel.authState.collectAsState()
+    val errorMessage by authViewModel.errorMessage.collectAsState()
+
+    // Auto-navigate once Firebase confirms sign-in
+    LaunchedEffect(authState) {
+        if (authState is AuthState.SignedIn) onSignInClick()
+    }
 
     Scaffold { innerPadding ->
         Column(
@@ -35,7 +37,6 @@ fun SignInScreen(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // TODO: Replace with FourSquare logo
             Text(
                 text  = "FourSquare",
                 style = MaterialTheme.typography.displaySmall,
@@ -72,13 +73,36 @@ fun SignInScreen(
                 modifier             = Modifier.fillMaxWidth()
             )
 
+            // Show Firebase error if sign-in fails
+            if (errorMessage != null) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text  = errorMessage ?: "",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
             Spacer(Modifier.height(24.dp))
 
             Button(
-                onClick  = onSignInClick,
-                modifier = Modifier.fillMaxWidth()
+                onClick  = {
+                    authViewModel.clearError()
+                    authViewModel.signIn(email, password)
+                },
+                modifier = Modifier.fillMaxWidth(),
+                enabled  = email.isNotBlank() && password.isNotBlank()
+                        && authState !is AuthState.Loading
             ) {
-                Text("Sign in")
+                if (authState is AuthState.Loading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                } else {
+                    Text("Sign in")
+                }
             }
 
             Spacer(Modifier.height(8.dp))
