@@ -13,35 +13,20 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.foursquare.ui.common.FourSquareTopBar
 import com.example.foursquare.ui.common.PlaceCard
+import com.google.firebase.auth.FirebaseAuth
 
-// Dummy data
-
-data class DummySavedPlace(
-    val id: String,
-    val name: String,
-    val category: String,
-    val rating: Double,
-    val distance: String
+private val preferenceCategories = listOf(
+    "Food", "Coffee", "Parks", "Concerts", "Sports", "Art"
 )
-
-private val dummySavedPlaces = listOf(
-    DummySavedPlace("1", "Tatte Bakery & Café", "Café",    4.6, "0.3 mi"),
-    DummySavedPlace("2", "Saltie Girl",          "Seafood", 4.8, "0.7 mi"),
-    DummySavedPlace("3", "Trident Booksellers",  "Books",   4.5, "0.9 mi")
-)
-
-private val preferenceCategories = listOf("Food", "Coffee", "Parks", "Concerts", "Sports", "Art")
-
-// Screen
 
 /**
  * Profile Screen
- * Displays the signed-in user's avatar, stats, saved places, category preferences,
- * and a visit history section.
+ * Shows the signed-in user's real name/email from FirebaseAuth,
+ * saved places stats, category preferences, and a sign-out button.
  *
- * @param onPlaceClick  Called with the place ID when a saved place card is tapped.
+ * @param onPlaceClick  Called with the place ID when a saved place is tapped.
  * @param onSignOut     Called when the user taps "Sign out".
- * @param onEditProfile Called when the user taps "Edit profile".
+ * @param onEditProfile Called when the user taps the edit icon.
  */
 @Composable
 fun ProfileScreen(
@@ -49,29 +34,32 @@ fun ProfileScreen(
     onSignOut: () -> Unit = {},
     onEditProfile: () -> Unit = {}
 ) {
-    // TODO: load from ViewModel / auth state
-    val userName   = "Vanessa Wang"
-    val userEmail  = "wang.van@northeastern.edu"
-    val savedCount = 47
-    val visitedCount = 32
-    val groupCount = 3
+    // Real user data from FirebaseAuth
+    val currentUser  = FirebaseAuth.getInstance().currentUser
+    val userName     = currentUser?.displayName
+        ?: currentUser?.email?.substringBefore("@")
+        ?: "User"
+    val userEmail    = currentUser?.email ?: ""
+    val userInitials = userName.take(2).uppercase()
 
-    // Preference toggles
-    // TODO: persist to Firestore user profile
+    // Preference toggles — TODO: persist to Firestore user profile
     val selectedPrefs = remember { mutableStateListOf("Food", "Coffee") }
 
+    // Placeholder saved place data — TODO: wire to PlacesViewModel
+    val dummySavedPlaces = listOf(
+        Triple("1", "Tatte Bakery & Café", "Café"),
+        Triple("2", "Saltie Girl",          "Seafood"),
+        Triple("3", "Trident Booksellers",  "Books")
+    )
+
     Scaffold(
-        topBar = {
-            FourSquareTopBar(
-                title = "Profile"
-            )
-        }
+        topBar = { FourSquareTopBar(title = "Profile") }
     ) { innerPadding ->
         LazyColumn(
-            modifier       = Modifier
+            modifier            = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
-            contentPadding = PaddingValues(16.dp),
+            contentPadding      = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
 
@@ -81,7 +69,7 @@ fun ProfileScreen(
                     modifier          = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Avatar circle
+                    // Avatar circle with real initials
                     Surface(
                         modifier = Modifier.size(64.dp),
                         shape    = MaterialTheme.shapes.extraLarge,
@@ -89,7 +77,7 @@ fun ProfileScreen(
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Text(
-                                text  = userName.take(2).uppercase(),
+                                text  = userInitials,
                                 style = MaterialTheme.typography.headlineSmall,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
@@ -100,8 +88,11 @@ fun ProfileScreen(
 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(userName,  style = MaterialTheme.typography.titleLarge)
-                        Text(userEmail, style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            userEmail,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
 
                     IconButton(onClick = onEditProfile) {
@@ -119,11 +110,11 @@ fun ProfileScreen(
                             .padding(16.dp),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        ProfileStat(label = "Saved",   value = savedCount.toString())
+                        ProfileStat(label = "Saved",   value = dummySavedPlaces.size.toString())
                         VerticalDivider(modifier = Modifier.height(32.dp))
-                        ProfileStat(label = "Visited", value = visitedCount.toString())
+                        ProfileStat(label = "Visited", value = "0")
                         VerticalDivider(modifier = Modifier.height(32.dp))
-                        ProfileStat(label = "Groups",  value = groupCount.toString())
+                        ProfileStat(label = "Groups",  value = "0")
                     }
                 }
             }
@@ -132,11 +123,10 @@ fun ProfileScreen(
             item {
                 Text("My Preferences", style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(8.dp))
-                // Wrap chips in a flow-like row using multiple rows
-                // TODO: replace with FlowRow when stable
-                Row(
+                FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    verticalArrangement   = Arrangement.spacedBy(8.dp),
+                    modifier              = Modifier.fillMaxWidth()
                 ) {
                     preferenceCategories.forEach { pref ->
                         FilterChip(
@@ -144,7 +134,6 @@ fun ProfileScreen(
                             onClick  = {
                                 if (selectedPrefs.contains(pref)) selectedPrefs.remove(pref)
                                 else selectedPrefs.add(pref)
-                                // TODO: sync preference update to Firestore
                             },
                             label = { Text(pref) }
                         )
@@ -152,7 +141,7 @@ fun ProfileScreen(
                 }
             }
 
-            // Saved places
+            // Saved places section
             item {
                 Row(
                     modifier              = Modifier.fillMaxWidth(),
@@ -166,26 +155,26 @@ fun ProfileScreen(
                 }
             }
 
-            items(dummySavedPlaces) { place ->
+            items(dummySavedPlaces) { (id, name, category) ->
                 PlaceCard(
-                    name     = place.name,
-                    category = place.category,
-                    rating   = place.rating,
-                    distance = place.distance,
-                    onClick  = { onPlaceClick(place.id) }
+                    name     = name,
+                    category = category,
+                    rating   = 4.5,
+                    distance = "",
+                    onClick  = { onPlaceClick(id) }
                 )
             }
 
-            // History
+            // Visit history
             item {
                 Text("Visit History", style = MaterialTheme.typography.titleMedium)
             }
 
-            items(dummySavedPlaces) { place ->
-                HistoryRow(name = place.name, category = place.category)
+            items(dummySavedPlaces) { (_, name, category) ->
+                HistoryRow(name = name, category = category)
             }
 
-            // Sign out
+            // Sign out button
             item {
                 Spacer(Modifier.height(8.dp))
                 OutlinedButton(
@@ -204,15 +193,21 @@ fun ProfileScreen(
     }
 }
 
-// Sub-composables
-
-/** Small stat column used in the profile stats card. */
+/**
+ * Small stat column used in the profile stats card.
+ *
+ * @param label Short label shown below the value.
+ * @param value Numeric string to display.
+ */
 @Composable
 private fun ProfileStat(label: String, value: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(value, style = MaterialTheme.typography.headlineSmall)
-        Text(label, style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+            label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
@@ -220,7 +215,7 @@ private fun ProfileStat(label: String, value: String) {
  * Single row in the visit history list.
  *
  * @param name     Place name.
- * @param category Place category.
+ * @param category Place category label.
  */
 @Composable
 private fun HistoryRow(name: String, category: String) {
@@ -246,7 +241,7 @@ private fun HistoryRow(name: String, category: String) {
     HorizontalDivider()
 }
 
-// Previews
+// ── Previews ─────────────────────────────────────────────────────────────────
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable

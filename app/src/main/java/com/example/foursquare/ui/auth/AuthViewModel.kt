@@ -2,7 +2,6 @@ package com.example.foursquare.ui.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.foursquare.data.AuthRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 

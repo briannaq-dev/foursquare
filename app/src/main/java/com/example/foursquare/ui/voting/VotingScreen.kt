@@ -11,52 +11,39 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.foursquare.ui.common.FourSquareTopBar
 
-// Dummy data
-
-private data class VoteCandidate(
-    val id: String,
-    val name: String,
-    val category: String,
-    val rating: Double,
-    val votes: Int,
-    val totalVotes: Int
-)
-
-private val dummyCandidates = listOf(
-    VoteCandidate("p1", "Tatte Bakery",   "Café",    4.6, 4, 5),
-    VoteCandidate("p2", "Saltie Girl",    "Seafood", 4.8, 3, 5),
-    VoteCandidate("p3", "Boston Common",  "Park",    4.7, 2, 5),
-    VoteCandidate("p4", "Trident Books",  "Books",   4.5, 1, 5)
-)
-
-// Screen
 /**
- * Screen 7 (alternate) — Voting
- * Full-screen view of the active poll for a group. Users can see live vote counts,
- * cast their vote, and lock in the final pick once voting closes.
+ * Screen 7 — Voting
+ * Full-screen live poll for a group. Members can cast votes and see
+ * real-time results from Firestore. The host can lock in the final pick.
  *
- * This screen mirrors the "Vote & Lock" mockup from the proposal and can be reached
- * from [GroupDetailScreen] via an explicit "Open vote" action.
- *
- * @param groupId       The ID of the group whose poll is displayed.
- * @param groupName     Display name shown in the top bar.
- * @param onBack        Called when the back arrow is tapped.
- * @param onLockIn      Called with the winning candidate ID when the host locks the pick.
+ * @param viewModel  Provides real-time vote state and write actions.
+ * @param groupId    The Firestore ID of the group whose poll is shown.
+ * @param groupName  Display name shown in the top bar.
+ * @param onBack     Called when the back arrow is tapped.
+ * @param onLockIn   Called with the winning candidate ID when locked in.
  */
 @Composable
 fun VotingScreen(
+    viewModel: VotingViewModel = viewModel(),
     groupId: String,
     groupName: String = "CS Squad",
     onBack: () -> Unit = {},
     onLockIn: (candidateId: String) -> Unit = {}
 ) {
-    // TODO: load real vote state from ViewModel / Firestore real-time listener
-    var userVote by remember { mutableStateOf<String?>(null) }
+    // Real-time votes from Firestore
+    val votes by viewModel.votes.collectAsState()
 
-    // Simulated countdown
-    // TODO: replace with actual expiry timestamp from Firestore
+    // Load votes for this group when screen opens
+    LaunchedEffect(groupId) { viewModel.loadVotes(groupId) }
+
+    // Current user's vote (derived from Firestore data)
+    val myVotePlaceId = votes.find {
+        it.userId == viewModel.currentUid
+    }?.placeId
+
     val timeLeft = "2h remaining"
 
     Scaffold(
@@ -69,14 +56,14 @@ fun VotingScreen(
         }
     ) { innerPadding ->
         LazyColumn(
-            modifier       = Modifier
+            modifier            = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
-            contentPadding = PaddingValues(16.dp),
+            contentPadding      = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
 
-            // Poll header
+            // Poll header card
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -119,34 +106,57 @@ fun VotingScreen(
                 )
             }
 
-            // Vote candidates
-            items(dummyCandidates) { candidate ->
+            // Vote candidates — derived from real vote data
+            val candidateIds = votes.map { it.placeId }.distinct()
+
+            items(candidateIds) { placeId ->
+                val placeName  = votes.first { it.placeId == placeId }.placeName
+                val voteCount  = votes.count { it.placeId == placeId }
+                val isSelected = myVotePlaceId == placeId
+
                 VoteCandidateCard(
-                    candidate  = candidate,
-                    isSelected = userVote == candidate.id,
-                    onVote     = {
-                        userVote = candidate.id
-                        // TODO: write vote to Firestore via ViewModel
-                    }
+                    placeId    = placeId,
+                    placeName  = placeName,
+                    voteCount  = voteCount,
+                    totalVotes = votes.size.coerceAtLeast(1),
+                    isSelected = isSelected,
+                    onVote     = { viewModel.castVote(placeId, placeName) }
                 )
             }
 
+            // Empty state when no votes yet
+            if (votes.isEmpty()) {
+                item {
+                    Box(
+                        modifier          = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
+                        contentAlignment  = Alignment.Center
+                    ) {
+                        Text(
+                            "No votes yet — be the first!",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
             // Lock in button
-            // host only — TODO: gate behind host role check)
             item {
                 Spacer(Modifier.height(8.dp))
-
-                val winner = dummyCandidates.maxByOrNull { it.votes }
+                val winner = votes.groupBy { it.placeId }
+                    .maxByOrNull { it.value.size }?.key
 
                 Button(
-                    onClick  = { winner?.let { onLockIn(it.id) } },
+                    onClick  = { winner?.let { onLockIn(it) } },
                     modifier = Modifier.fillMaxWidth(),
-                    enabled  = userVote != null   // at least the current user voted
+                    enabled  = myVotePlaceId != null
                 ) {
                     Text("Lock in final pick")
                 }
 
-                if (userVote == null) {
+                if (myVotePlaceId == null) {
                     Text(
                         "Vote first to enable locking",
                         style    = MaterialTheme.typography.labelSmall,
@@ -159,62 +169,55 @@ fun VotingScreen(
     }
 }
 
-// Sub-composables
-
 /**
- * Card for a single voting candidate showing its name, category, live vote bar,
- * and vote count.
+ * Card for a single voting candidate showing live vote bar and count.
  *
- * @param candidate  The place being voted on.
- * @param isSelected Whether the current user has voted for this candidate.
- * @param onVote     Called when the user taps this card to vote.
+ * @param placeId    Firestore place ID for this candidate.
+ * @param placeName  Display name of the place.
+ * @param voteCount  Number of votes this candidate has received.
+ * @param totalVotes Total votes cast across all candidates.
+ * @param isSelected Whether the current user voted for this candidate.
+ * @param onVote     Called when the user taps to vote.
  */
 @Composable
 private fun VoteCandidateCard(
-    candidate: VoteCandidate,
+    placeId: String,
+    placeName: String,
+    voteCount: Int,
+    totalVotes: Int,
     isSelected: Boolean,
     onVote: () -> Unit
 ) {
-    val progress = if (candidate.totalVotes > 0)
-        candidate.votes.toFloat() / candidate.totalVotes
-    else 0f
+    val progress = voteCount.toFloat() / totalVotes
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        onClick  = onVote,
-        colors   = CardDefaults.cardColors(
+        modifier  = Modifier.fillMaxWidth(),
+        onClick   = onVote,
+        colors    = CardDefaults.cardColors(
             containerColor = if (isSelected)
                 MaterialTheme.colorScheme.primaryContainer
             else
                 MaterialTheme.colorScheme.surface
         ),
-        border = if (isSelected) CardDefaults.outlinedCardBorder() else null,
-        elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) 0.dp else 2.dp)
+        border    = if (isSelected) CardDefaults.outlinedCardBorder() else null,
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = if (isSelected) 0.dp else 2.dp
+        )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-
             Row(
                 modifier              = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment     = Alignment.CenterVertically
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text  = candidate.name,
-                        style = MaterialTheme.typography.titleSmall,
-                        color = if (isSelected)
-                            MaterialTheme.colorScheme.onPrimaryContainer
-                        else
-                            MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text  = "${candidate.category} · ⭐ ${candidate.rating}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                // Vote count badge
+                Text(
+                    text  = placeName,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = if (isSelected)
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    else
+                        MaterialTheme.colorScheme.onSurface
+                )
                 Surface(
                     shape = MaterialTheme.shapes.small,
                     color = if (isSelected)
@@ -223,7 +226,7 @@ private fun VoteCandidateCard(
                         MaterialTheme.colorScheme.surfaceVariant
                 ) {
                     Text(
-                        text     = "${candidate.votes}/${candidate.totalVotes}",
+                        text     = "$voteCount/$totalVotes",
                         style    = MaterialTheme.typography.labelSmall,
                         color    = if (isSelected)
                             MaterialTheme.colorScheme.onPrimary
@@ -233,10 +236,7 @@ private fun VoteCandidateCard(
                     )
                 }
             }
-
             Spacer(Modifier.height(8.dp))
-
-            // Live vote progress bar
             LinearProgressIndicator(
                 progress = { progress },
                 modifier = Modifier.fillMaxWidth()
@@ -245,7 +245,7 @@ private fun VoteCandidateCard(
     }
 }
 
-// Previews
+// ── Previews ─────────────────────────────────────────────────────────────────
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
@@ -266,12 +266,18 @@ private fun VoteCandidateCardPreview() {
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         VoteCandidateCard(
-            candidate  = VoteCandidate("p1", "Tatte Bakery", "Café", 4.6, 4, 5),
+            placeId    = "p1",
+            placeName  = "Tatte Bakery",
+            voteCount  = 4,
+            totalVotes = 5,
             isSelected = true,
             onVote     = {}
         )
         VoteCandidateCard(
-            candidate  = VoteCandidate("p2", "Saltie Girl", "Seafood", 4.8, 3, 5),
+            placeId    = "p2",
+            placeName  = "Saltie Girl",
+            voteCount  = 3,
+            totalVotes = 5,
             isSelected = false,
             onVote     = {}
         )

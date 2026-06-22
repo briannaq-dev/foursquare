@@ -11,59 +11,49 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.foursquare.ui.common.FourSquareTopBar
 import com.example.foursquare.ui.common.GroupCard
 
-private data class DummyGroup(
-    val id: String, val name: String, val memberCount: Int, val statusLine: String
-)
-
-private val dummyGroups = listOf(
-    DummyGroup("g1", "CS Squad",  5, "Voting · 12 places"),
-    DummyGroup("g2", "Hometown",  4, "No active plans"),
-    DummyGroup("g3", "Roomies",   3, "Plan · Movie night")
-)
-
-private data class DummyVoteOption(val name: String, val votes: Int, val totalVotes: Int)
-
-private val dummyVoteOptions = listOf(
-    DummyVoteOption("Tatte Bakery", 4, 5),
-    DummyVoteOption("Saltie Girl",  3, 5),
-    DummyVoteOption("Boston Common",2, 5),
-    DummyVoteOption("Trident Books",1, 5)
-)
-
 /**
  * Screen 6 — Groups
- * Lists the user's groups and provides a way to create or join one via invite code.
+ * Lists the signed-in user's groups from Firestore.
+ * Allows creating a new group or joining one via invite code.
  *
+ * @param viewModel    Provides real-time group list and create/join actions.
  * @param onGroupClick Called with the group ID when a group card is tapped.
  */
 @Composable
 fun GroupsScreen(
+    viewModel: GroupsViewModel = viewModel(),
     onGroupClick: (String) -> Unit
 ) {
-    var inviteCode by remember { mutableStateOf("") }
+    var inviteCode       by remember { mutableStateOf("") }
+    var showCreateDialog by remember { mutableStateOf(false) }
+
+    // Real Firestore data — recomposes automatically when groups change
+    val groups by viewModel.groups.collectAsState()
 
     Scaffold(
         topBar = { FourSquareTopBar(title = "Groups") },
         floatingActionButton = {
-            FloatingActionButton(onClick = { /* TODO: create group dialog */ }) {
+            FloatingActionButton(onClick = { showCreateDialog = true }) {
                 Icon(Icons.Default.Add, contentDescription = "Create group")
             }
         }
     ) { innerPadding ->
         LazyColumn(
-            modifier       = Modifier
+            modifier            = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
-            contentPadding = PaddingValues(16.dp),
+            contentPadding      = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+
             // Create group button
             item {
                 Button(
-                    onClick  = { /* TODO: open create-group dialog */ },
+                    onClick  = { showCreateDialog = true },
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Icon(Icons.Default.Add, contentDescription = null)
@@ -77,7 +67,7 @@ fun GroupsScreen(
                 Text("Join with code", style = MaterialTheme.typography.titleSmall)
                 Spacer(Modifier.height(8.dp))
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
+                    verticalAlignment     = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     OutlinedTextField(
@@ -87,7 +77,14 @@ fun GroupsScreen(
                         singleLine    = true,
                         modifier      = Modifier.weight(1f)
                     )
-                    Button(onClick = { /* TODO: join group */ }) {
+                    Button(
+                        onClick = {
+                            if (inviteCode.isNotBlank()) {
+                                viewModel.joinGroup(inviteCode)
+                                inviteCode = ""
+                            }
+                        }
+                    ) {
                         Text("Join")
                     }
                 }
@@ -95,24 +92,88 @@ fun GroupsScreen(
 
             // Groups list header
             item {
-                Text("Your groups", style = MaterialTheme.typography.titleSmall)
+                Text(
+                    text  = if (groups.isEmpty()) "No groups yet" else "Your groups",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
 
-            items(dummyGroups) { group ->
+            // Real groups from Firestore
+            items(groups) { group ->
                 GroupCard(
                     name        = group.name,
-                    memberCount = group.memberCount,
-                    statusLine  = group.statusLine,
+                    memberCount = group.memberIds.size,
+                    statusLine  = "Invite code: ${group.inviteCode}",
                     onClick     = { onGroupClick(group.id) }
                 )
             }
         }
     }
+
+    // Create group dialog
+    if (showCreateDialog) {
+        CreateGroupDialog(
+            onDismiss     = { showCreateDialog = false },
+            onCreateGroup = { name ->
+                viewModel.createGroup(name)
+                showCreateDialog = false
+            }
+        )
+    }
+}
+
+/**
+ * Dialog for creating a new group.
+ * Shown when the user taps "Create a group" or the FAB.
+ *
+ * @param onDismiss     Called when the dialog is dismissed.
+ * @param onCreateGroup Called with the group name when the user confirms.
+ */
+@Composable
+private fun CreateGroupDialog(
+    onDismiss: () -> Unit,
+    onCreateGroup: (String) -> Unit
+) {
+    var groupName by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title            = { Text("Create a group") },
+        text             = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text  = "Give your group a name. You'll get an invite code to share.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                OutlinedTextField(
+                    value         = groupName,
+                    onValueChange = { groupName = it },
+                    label         = { Text("Group name") },
+                    placeholder   = { Text("e.g. CS Squad") },
+                    singleLine    = true,
+                    modifier      = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick  = { if (groupName.isNotBlank()) onCreateGroup(groupName) },
+                enabled  = groupName.isNotBlank()
+            ) {
+                Text("Create")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
 }
 
 /**
  * Screen 7 — Group Detail / Vote & Lock
- * Displays group members, a live voting poll, and a "Lock in final pick" button.
+ * Displays group members, a live voting poll, and a lock-in button.
  *
  * @param groupId The ID of the group to display.
  * @param onBack  Called when the back arrow is tapped.
@@ -122,36 +183,32 @@ fun GroupDetailScreen(
     groupId: String,
     onBack: () -> Unit
 ) {
-    // TODO: load actual votes from ViewModel / Firestore
     var userVote by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
         topBar = {
             FourSquareTopBar(
-                title    = "CS Squad",   // TODO: replace with actual group name
+                title    = "Group Detail",
                 showBack = true,
                 onBack   = onBack
             )
         }
     ) { innerPadding ->
         LazyColumn(
-            modifier       = Modifier
+            modifier            = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
-            contentPadding = PaddingValues(16.dp),
+            contentPadding      = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Group header: member count + next event
             item {
                 Text(
-                    text  = "5 members · Saturday dinner",
+                    text  = "Group ID: $groupId",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                // TODO: member avatar row
             }
 
-            // Vote section
             item {
                 Row(
                     modifier              = Modifier.fillMaxWidth(),
@@ -177,7 +234,6 @@ fun GroupDetailScreen(
                 )
             }
 
-            // Lock in button
             item {
                 Button(
                     onClick  = { /* TODO: lock in final pick */ },
@@ -190,7 +246,24 @@ fun GroupDetailScreen(
     }
 }
 
-/** Single row in the voting poll showing a place name and live vote bar. */
+// Dummy vote options for GroupDetailScreen preview
+private data class DummyVoteOption(val name: String, val votes: Int, val totalVotes: Int)
+private val dummyVoteOptions = listOf(
+    DummyVoteOption("Tatte Bakery", 4, 5),
+    DummyVoteOption("Saltie Girl",  3, 5),
+    DummyVoteOption("Boston Common",2, 5),
+    DummyVoteOption("Trident Books",1, 5)
+)
+
+/**
+ * Single row in the voting poll showing a place name and live vote progress bar.
+ *
+ * @param name       Place name.
+ * @param votes      Current vote count for this option.
+ * @param totalVotes Total votes cast across all options.
+ * @param isSelected Whether the current user voted for this option.
+ * @param onVote     Called when the user taps this row to vote.
+ */
 @Composable
 private fun VoteOptionRow(
     name: String,
@@ -202,9 +275,8 @@ private fun VoteOptionRow(
     val progress = if (totalVotes > 0) votes.toFloat() / totalVotes else 0f
 
     Card(
-        modifier = Modifier
-            .fillMaxWidth(),
-        colors = CardDefaults.cardColors(
+        modifier = Modifier.fillMaxWidth(),
+        colors   = CardDefaults.cardColors(
             containerColor = if (isSelected)
                 MaterialTheme.colorScheme.primaryContainer
             else
@@ -239,4 +311,10 @@ private fun GroupsScreenPreview() {
 @Composable
 private fun GroupDetailScreenPreview() {
     GroupDetailScreen(groupId = "g1", onBack = {})
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun CreateGroupDialogPreview() {
+    CreateGroupDialog(onDismiss = {}, onCreateGroup = {})
 }
