@@ -5,6 +5,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.ui.graphics.Color
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -29,6 +32,8 @@ fun PlaceCard(
     rating: Double,
     distance: String,
     onClick: () -> Unit,
+    isSaved: Boolean = false,
+    onSaveClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -67,8 +72,14 @@ fun PlaceCard(
                 }
             }
 
-            IconButton(onClick = { /* TODO: save/unsave */ }) {
-                Icon(Icons.Default.FavoriteBorder, contentDescription = "Save place")
+            IconButton(onClick = onSaveClick) {
+                Icon(
+                    imageVector = if (isSaved) Icons.Default.Favorite
+                    else Icons.Default.FavoriteBorder,
+                    contentDescription = if (isSaved) "Unsave place" else "Save place",
+                    tint = if (isSaved) MaterialTheme.colorScheme.primary
+                    else LocalContentColor.current
+                )
             }
         }
     }

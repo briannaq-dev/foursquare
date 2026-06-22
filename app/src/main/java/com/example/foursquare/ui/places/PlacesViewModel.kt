@@ -9,18 +9,12 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 class PlacesViewModel : ViewModel() {
-
     private val uid get() = FirebaseAuth.getInstance().currentUser?.uid ?: ""
-    private val repo get() = PlacesRepository(uid)
+    private val repo by lazy { PlacesRepository(uid) }   // ← lazy, created once
 
     val savedPlaces: StateFlow<List<SavedPlace>> = repo.observeSavedPlaces()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    fun savePlace(place: SavedPlace) = viewModelScope.launch {
-        repo.savePlace(place)
-    }
-
-    fun removePlace(placeId: String) = viewModelScope.launch {
-        repo.removePlace(placeId)
-    }
+    fun savePlace(place: SavedPlace) = viewModelScope.launch { repo.savePlace(place) }
+    fun removePlace(placeId: String) = viewModelScope.launch { repo.removePlace(placeId) }
 }
