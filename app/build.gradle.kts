@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -15,6 +17,12 @@ android {
         targetSdk = 37
         versionCode = 1
         versionName = "1.0"
+
+        // Read Maps API key from local.properties
+        val localProps = Properties()
+        val localPropsFile = rootProject.file("local.properties")
+        if (localPropsFile.exists()) localProps.load(localPropsFile.inputStream())
+        manifestPlaceholders["MAPS_API_KEY"] = localProps.getProperty("MAPS_API_KEY", "")
     }
 
     buildFeatures { compose = true }
@@ -36,5 +44,7 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
     implementation(libs.kotlinx.coroutines.play.services)
+    implementation(libs.maps.compose)
+    implementation(libs.play.services.maps)
     debugImplementation(libs.androidx.compose.ui.tooling)
 }
