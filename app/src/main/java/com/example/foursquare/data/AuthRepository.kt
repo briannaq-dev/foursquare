@@ -1,4 +1,4 @@
-package com.example.foursquare.ui.auth
+package com.example.foursquare.data
 
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
