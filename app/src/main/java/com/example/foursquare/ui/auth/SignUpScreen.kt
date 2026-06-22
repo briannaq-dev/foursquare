@@ -8,25 +8,37 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.foursquare.ui.common.FourSquareTopBar
 
-/**
- * Screen 2 — Sign Up
- * Collects full name, email, password, and password confirmation to create an account.
- *
- * @param onCreateAccount Called when the "Create account" button is tapped.
- * @param onBack          Called when the back arrow is tapped.
- */
 @Composable
 fun SignUpScreen(
+    authViewModel: AuthViewModel = viewModel(),
     onCreateAccount: () -> Unit,
     onBack: () -> Unit
 ) {
-    var fullName         by remember { mutableStateOf("") }
-    var email            by remember { mutableStateOf("") }
-    var password         by remember { mutableStateOf("") }
-    var confirmPassword  by remember { mutableStateOf("") }
-    var agreedToTerms    by remember { mutableStateOf(false) }
+    var fullName        by remember { mutableStateOf("") }
+    var email           by remember { mutableStateOf("") }
+    var password        by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
+    var agreedToTerms   by remember { mutableStateOf(false) }
+
+    val authState    by authViewModel.authState.collectAsState()
+    val errorMessage by authViewModel.errorMessage.collectAsState()
+
+    // Passwords must match locally before we call Firebase
+    val passwordsMatch = password == confirmPassword
+    val canSubmit = fullName.isNotBlank()
+            && email.isNotBlank()
+            && password.isNotBlank()
+            && passwordsMatch
+            && agreedToTerms
+            && authState !is AuthState.Loading
+
+    // Auto-navigate once Firebase confirms account creation
+    LaunchedEffect(authState) {
+        if (authState is AuthState.SignedIn) onCreateAccount()
+    }
 
     Scaffold(
         topBar = {
@@ -92,7 +104,14 @@ fun SignUpScreen(
                 label                = { Text("Confirm password") },
                 singleLine           = true,
                 visualTransformation = PasswordVisualTransformation(),
-                modifier             = Modifier.fillMaxWidth()
+                isError              = confirmPassword.isNotBlank() && !passwordsMatch,
+                supportingText       = {
+                    if (confirmPassword.isNotBlank() && !passwordsMatch) {
+                        Text("Passwords do not match",
+                            color = MaterialTheme.colorScheme.error)
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
             )
 
             Spacer(Modifier.height(16.dp))
@@ -111,14 +130,35 @@ fun SignUpScreen(
                 )
             }
 
+            // Show Firebase error if account creation fails
+            if (errorMessage != null) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text  = errorMessage ?: "",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
             Spacer(Modifier.height(24.dp))
 
             Button(
-                onClick  = onCreateAccount,
+                onClick  = {
+                    authViewModel.clearError()
+                    authViewModel.signUp(email, password)
+                },
                 modifier = Modifier.fillMaxWidth(),
-                enabled  = agreedToTerms
+                enabled  = canSubmit
             ) {
-                Text("Create account")
+                if (authState is AuthState.Loading) {
+                    CircularProgressIndicator(
+                        modifier    = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                        color       = MaterialTheme.colorScheme.onPrimary
+                    )
+                } else {
+                    Text("Create account")
+                }
             }
         }
     }
